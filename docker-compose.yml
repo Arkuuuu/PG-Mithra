@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  scraper:
+    build: .
+    container_name: maps_scraper
+    restart: always
+    volumes:
+      # Keep local Excel and JSON files persisted on VPS host
+      - ./output:/app/output
+    ports:
+      # Expose port for interactive map dashboard
+      - "8000:8000"
+    environment:
+      # Pass Supabase connection parameters
+      - SUPABASE_URL=${SUPABASE_URL:-}
+      - SUPABASE_KEY=${SUPABASE_KEY:-}
+    command: sh start.sh
