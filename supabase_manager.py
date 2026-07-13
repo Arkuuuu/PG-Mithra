@@ -176,19 +176,37 @@ def pull_next_task(worker_id: str) -> dict:
     """
     Atomically pull the next pending scraping task from the task queue.
     Invokes the RPC function to prevent race conditions.
+    If no pending tasks exist, recycles completed tasks automatically.
     """
     client = get_supabase_client()
     if not client:
         return {}
     try:
-        # Call PostgreSQL function (RPC) pull_next_task
+        # 1. Attempt to pull next pending task
         res = client.rpc("pull_next_task", {"worker_name": worker_id}).execute()
         tasks = res.data if hasattr(res, "data") else []
+        task = {}
         if isinstance(tasks, list) and len(tasks) > 0:
-            return tasks[0]
+            task = tasks[0]
         elif isinstance(tasks, dict):
-            return tasks
-        return {}
+            task = tasks
+            
+        # 2. If no task returned, try recycling completed tasks
+        if not task or not task.get("area"):
+            logger.info("[DB] Task queue empty. Automatically recycling completed tasks for next loop sweep...")
+            recycle_res = client.rpc("recycle_completed_tasks").execute()
+            recycled_count = recycle_res.data if hasattr(recycle_res, "data") else 0
+            logger.info(f"[DB] Recycled {recycled_count} completed tasks back to pending.")
+            
+            # Try pulling again after recycling
+            res = client.rpc("pull_next_task", {"worker_name": worker_id}).execute()
+            tasks = res.data if hasattr(res, "data") else []
+            if isinstance(tasks, list) and len(tasks) > 0:
+                task = tasks[0]
+            elif isinstance(tasks, dict):
+                task = tasks
+                
+        return task if task and task.get("area") else {}
     except Exception as e:
         logger.warning(f"[DB] Failed to pull task from cloud: {e}")
         return {}
