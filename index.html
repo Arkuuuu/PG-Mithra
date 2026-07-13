@@ -1183,8 +1183,8 @@
             } else {
                 consoleEl.style.display = 'block';
                 refreshAdminData();
-                // Check updates every 8 seconds
-                adminIntervalId = setInterval(refreshAdminData, 8000);
+                // Check updates every 5 seconds
+                adminIntervalId = setInterval(refreshAdminData, 5000);
             }
         };
 
@@ -1235,10 +1235,14 @@
 
                 const tr = document.createElement('tr');
                 tr.style.borderBottom = '1px solid rgba(255,255,255,0.03)';
+                if (w.status === 'scraping' && !isOffline) {
+                    tr.style.background = 'rgba(56, 189, 248, 0.05)';
+                    tr.style.borderLeft = '3px solid var(--accent-primary)';
+                }
                 tr.innerHTML = `
-                    <td style="padding: 12px 5px; font-weight:600;">${w.worker_id}</td>
+                    <td style="padding: 12px 5px; font-weight:600; padding-left: 8px;">${w.worker_id}</td>
                     <td style="padding: 12px 5px; display:flex; align-items:center; height: 100%;">${statusPulse}<span style="color:${statusColor}">${statusLabel}</span></td>
-                    <td style="padding: 12px 5px; color:var(--text-muted);">${w.current_area || 'None'}</td>
+                    <td style="padding: 12px 5px; color:var(--text-muted); font-size: 12px;">${w.current_area || 'None'}</td>
                     <td style="padding: 12px 5px; text-align:right; font-weight:600; color:var(--accent-primary);">${w.total_scraped || 0}</td>
                     <td style="padding: 12px 5px; text-align:right; color:var(--text-muted);">${checkTimeText}</td>
                 `;
@@ -1267,10 +1271,14 @@
 
                 const tr = document.createElement('tr');
                 tr.style.borderBottom = '1px solid rgba(255,255,255,0.03)';
+                if (t.status === 'in_progress') {
+                    tr.style.background = 'rgba(236, 72, 153, 0.05)';
+                    tr.style.borderLeft = '3px solid var(--color-colive)';
+                }
                 tr.innerHTML = `
-                    <td style="padding: 12px 5px; font-weight:500;">${t.area}</td>
+                    <td style="padding: 12px 5px; font-weight:500; padding-left: 8px;">${t.area}</td>
                     <td style="padding: 12px 5px; color:${stateColor}; text-transform: capitalize;">${t.status.replace('_', ' ')}</td>
-                    <td style="padding: 12px 5px; color:var(--text-muted);">${t.assigned_worker || '-'}</td>
+                    <td style="padding: 12px 5px; color:var(--text-muted); font-size: 12px;">${t.assigned_worker || '-'}</td>
                     <td style="padding: 12px 5px; text-align:right; color:var(--text-muted);">${timeText}</td>
                 `;
                 tbody.appendChild(tr);
