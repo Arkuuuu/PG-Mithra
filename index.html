@@ -677,8 +677,19 @@
                             Remaining
                         </div>
                         <div class="filter-count" id="count-remaining">0</div>
-                    </button>
                 </div>
+            </div>
+
+            <!-- Source Channel Filters -->
+            <div>
+                <h3 class="section-title">Source Channels</h3>
+                <select id="source-select" class="select-input">
+                    <option value="all">All Channels</option>
+                    <option value="maps">Google Maps (Standard)</option>
+                    <option value="panning">Google Maps (Grid-panning)</option>
+                    <option value="nobroker">NoBroker Portal</option>
+                    <option value="zolostays">Zolostays Portal</option>
+                </select>
             </div>
 
             <!-- Search & Lists -->
@@ -723,6 +734,7 @@
         let searchQuery = '';
         let activeMarker = null;
         let isInitialLoad = true;
+        let currentSource = 'all';
 
         // Initialize App
         document.addEventListener('DOMContentLoaded', () => {
@@ -823,16 +835,26 @@
             document.getElementById('count-remaining').textContent = counts.remaining;
         }
 
+        function getListingSource(l) {
+            if (!l.category) return 'maps';
+            if (l.category === 'NoBroker Portal') return 'nobroker';
+            if (l.category === 'Zolostays Portal') return 'zolostays';
+            if (l.category.includes('Grid-panning') || (l.search_query && l.search_query.includes('Grid-panning'))) return 'panning';
+            return 'maps';
+        }
+
         // Filter and Render elements
         function applyFilters() {
             filteredListings = listings.filter(l => {
                 const matchesFilter = (currentFilter === 'all' || l.classification === currentFilter);
                 const matchesArea = (currentArea === 'all' || l.area === currentArea);
                 
+                const matchesSource = (currentSource === 'all' || getListingSource(l) === currentSource);
+                
                 const searchStr = `${l.name} ${l.address_full} ${l.phone} ${l.category}`.toLowerCase();
                 const matchesSearch = searchStr.includes(searchQuery.toLowerCase());
 
-                return matchesFilter && matchesArea && matchesSearch;
+                return matchesFilter && matchesArea && matchesSource && matchesSearch;
             });
 
             renderListings();
@@ -865,13 +887,29 @@
                 const rating = item.rating ? `<i class="fa-solid fa-star" style="color: #fbbf24; margin-right: 4px;"></i>${item.rating}` : 'No rating';
                 const areaTag = item.area ? `<span style="font-size: 11px; background: rgba(255,255,255,0.06); padding: 2px 6px; border-radius: 4px;">${item.area}</span>` : '';
 
+                // Source badge color code
+                const src = getListingSource(item);
+                let srcColor = 'rgba(56, 189, 248, 0.15)'; // Google Maps standard
+                let srcText = 'Google Maps';
+                if (src === 'nobroker') {
+                    srcColor = 'rgba(239, 68, 68, 0.15)';
+                    srcText = 'NoBroker';
+                } else if (src === 'zolostays') {
+                    srcColor = 'rgba(244, 63, 94, 0.15)';
+                    srcText = 'Zolostays';
+                } else if (src === 'panning') {
+                    srcColor = 'rgba(16, 185, 129, 0.15)';
+                    srcText = 'Grid Map';
+                }
+                const srcTag = `<span style="font-size: 10px; background: ${srcColor}; padding: 2px 6px; border-radius: 4px; margin-left: 5px; color: var(--text-main); font-weight: 500;">${srcText}</span>`;
+
                 card.innerHTML = `
                     <div class="listing-card-header">
                         <div class="listing-card-title">${item.name}</div>
                     </div>
                     <div class="listing-card-meta">
                         <div>${rating}</div>
-                        <div>${areaTag}</div>
+                        <div>${areaTag}${srcTag}</div>
                     </div>
                 `;
 
@@ -1113,6 +1151,12 @@
             // Locality Select Dropdown Filter
             document.getElementById('area-select').addEventListener('change', (e) => {
                 currentArea = e.target.value;
+                applyFilters();
+            });
+
+            // Source Channel Select Dropdown Filter
+            document.getElementById('source-select').addEventListener('change', (e) => {
+                currentSource = e.target.value;
                 applyFilters();
             });
 

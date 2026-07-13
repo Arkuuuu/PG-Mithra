@@ -30,6 +30,9 @@ from config import (
 )
 from browser_stealth import launch_stealth_browser, close_browser
 from scraper import scrape_area
+from panning_scraper import scrape_maps_panning
+from nobroker_scraper import scrape_nobroker_area
+from zolostays_scraper import scrape_zolostays_area
 from anti_detect import random_delay, random_page_interaction
 from data_manager import (
     deduplicate,
@@ -187,8 +190,27 @@ async def main(args):
                     worker_state["current_area"] = area
 
                     try:
-                         area_count = await scrape_area(page, area, all_results)
-                         logger.info(f"  [STAT] Area '{area}': {area_count} new listings")
+                         # Run matching scrapers dynamically based on CLI selection
+                         source = getattr(args, "source", "all").lower()
+                         area_count = 0
+                         
+                         if source in ["all", "maps"]:
+                             count = await scrape_area(page, area, all_results)
+                             area_count += count
+                             
+                         if source in ["all", "panning"]:
+                             count = await scrape_maps_panning(page, area, all_results)
+                             area_count += count
+                             
+                         if source in ["all", "nobroker"]:
+                             count = await scrape_nobroker_area(page, area, all_results)
+                             area_count += count
+                             
+                         if source in ["all", "zolo"]:
+                             count = await scrape_zolostays_area(page, area, all_results)
+                             area_count += count
+
+                         logger.info(f"  [STAT] Area '{area}': {area_count} total listings extracted across sources")
                          
                          # Update telemetry counts
                          worker_state["total_scraped"] = len(all_results)
@@ -277,6 +299,13 @@ Examples:
         type=str,
         default=None,
         help="Comma-separated list of areas to scrape (default: all Hyderabad areas)",
+    )
+    parser.add_argument(
+        "--source",
+        type=str,
+        choices=["all", "maps", "panning", "nobroker", "zolo"],
+        default="all",
+        help="Target data source/method to execute (default: all)",
     )
     parser.add_argument(
         "--headed",
