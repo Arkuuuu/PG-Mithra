@@ -28,22 +28,69 @@ AREA_COORDINATES = {
     "Madhapur Metro Station": (17.4432, 78.3822),
 }
 
-async def scrape_maps_panning(page, area: str, all_results: list) -> int:
+async def execute_single_cell_extraction(page, area: str, all_results: list) -> int:
+    """Executes a search-this-area and listing extraction with retry loops for a single cell."""
+    search_this_area_selectors = [
+        "button:has-text('Search this area')",
+        "span:has-text('Search this area')",
+        "button[jsaction*='searchthisarea']",
+        "button.uE3aBe"
+    ]
+    
+    # Relentless search-this-area clicker loop
+    for attempt in range(1, 4):
+        logger.info(f"    [Cell Search] Attempting 'Search this area' (Try {attempt}/3)...")
+        btn_clicked = False
+        for selector in search_this_area_selectors:
+            try:
+                btn = page.locator(selector).first
+                if await btn.is_visible(timeout=2000):
+                    await btn.click()
+                    logger.info("    [Cell Search] Clicked 'Search this area'")
+                    btn_clicked = True
+                    break
+            except Exception:
+                continue
+        
+        await random_delay(3.0, 5.0)
+        
+        feed_selector = await _find_feed_selector(page)
+        if feed_selector:
+            # We found a results panel! Scroll and extract
+            cards = await _scroll_results_feed(page, feed_selector)
+            if cards > 0:
+                count = await _extract_all_listings(page, feed_selector, area, f"PG Coordinate Cell ({area})", all_results)
+                logger.info(f"    [Cell Search] Extracted {count} listings successfully.")
+                return count
+        else:
+            # Wait a little and loop again
+            await asyncio.sleep(2)
+            
+    logger.info("    [Cell Search] No listings found in this cell after 3 attempts.")
+    return 0
+
+
+async def scrape_maps_panning(page, area: str, all_results: list, cell_coords: tuple = None) -> int:
     """
     Perform a geographic grid-panning search on Google Maps.
     Centers viewport, runs generic 'PG' query, and pans maps to trigger local pin updates.
     """
     # 1. Retrieve center coordinates
-    coords = AREA_COORDINATES.get(area)
-    if not coords:
-        # Default fallback to center of Madhapur
-        coords = (17.4483, 78.3908)
+    if cell_coords:
+        lat, lon = cell_coords
+        logger.info(f"[Panning] Loading exact Coordinate Cell: {lat}, {lon} for {area}")
+        grid_mode = False
+    else:
+        coords = AREA_COORDINATES.get(area)
+        if not coords:
+            coords = (17.4483, 78.3908)
+        lat, lon = coords
+        grid_mode = True
         
-    lat, lon = coords
     zoom = 18 # High zoom for residential level detail
     
     url = f"https://www.google.com/maps/@{lat},{lon},{zoom}z"
-    logger.info(f"[Panning] Loading Maps centered at {area}: {url}")
+    logger.info(f"[Panning] Loading Maps: {url}")
     
     await page.goto(url, wait_until="load", timeout=60000)
     await random_delay(4.0, 6.0)
@@ -60,6 +107,9 @@ async def scrape_maps_panning(page, area: str, all_results: list) -> int:
     await page.keyboard.press("Enter")
     await random_delay(4.0, 6.0)
     
+    if not grid_mode:
+        return await execute_single_cell_extraction(page, area, all_results)
+        
     total_scraped = 0
     
     # 2. Grid loop: Pan maps in 3x3 pattern using Arrow inputs

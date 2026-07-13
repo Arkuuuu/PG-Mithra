@@ -155,17 +155,24 @@ async def main(args):
             # Check if using dynamic queue (default when --areas is not specified)
             use_dynamic_queue = (args.areas is None)
             
+            cell_coords = None
             if use_dynamic_queue:
                 logger.info("\n[QUEUE] Querying Supabase central tasks table for work...")
                 worker_state["status"] = "idle"
                 worker_state["current_area"] = ""
                 
-                area = pull_next_task(worker_id)
-                if not area:
+                task = pull_next_task(worker_id)
+                if not task or not task.get("area"):
                     logger.info("[QUEUE] No pending tasks available. Waiting 45s before checking again...")
                     worker_state["status"] = "cooldown"
                     await asyncio.sleep(45)
                     continue
+                
+                area = task.get("area")
+                lat = task.get("latitude")
+                lon = task.get("longitude")
+                if lat is not None and lon is not None:
+                    cell_coords = (float(lat), float(lon))
                 
                 areas_to_scrape = [area]
                 logger.info(f"[QUEUE] Claimed task area from queue: {area}")
@@ -199,7 +206,7 @@ async def main(args):
                              area_count += count
                              
                          if source in ["all", "panning"]:
-                             count = await scrape_maps_panning(page, area, all_results)
+                             count = await scrape_maps_panning(page, area, all_results, cell_coords=cell_coords)
                              area_count += count
                              
                          if source in ["all", "nobroker"]:

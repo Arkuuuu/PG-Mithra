@@ -172,22 +172,26 @@ def update_worker_heartbeat(worker_id: str, status: str, current_area: str, tota
         return False
 
 
-def pull_next_task(worker_id: str) -> str:
+def pull_next_task(worker_id: str) -> dict:
     """
     Atomically pull the next pending scraping task from the task queue.
     Invokes the RPC function to prevent race conditions.
     """
     client = get_supabase_client()
     if not client:
-        return ""
+        return {}
     try:
         # Call PostgreSQL function (RPC) pull_next_task
         res = client.rpc("pull_next_task", {"worker_name": worker_id}).execute()
-        task_area = res.data if hasattr(res, "data") else ""
-        return task_area or ""
+        tasks = res.data if hasattr(res, "data") else []
+        if isinstance(tasks, list) and len(tasks) > 0:
+            return tasks[0]
+        elif isinstance(tasks, dict):
+            return tasks
+        return {}
     except Exception as e:
         logger.warning(f"[DB] Failed to pull task from cloud: {e}")
-        return ""
+        return {}
 
 
 def complete_task(area: str) -> bool:
@@ -322,33 +326,40 @@ CREATE TABLE IF NOT EXISTS tasks (
     status TEXT DEFAULT 'pending', -- pending, in_progress, completed
     assigned_worker TEXT REFERENCES workers(worker_id) ON DELETE SET NULL,
     started_at TIMESTAMPTZ,
-    completed_at TIMESTAMPTZ
+    completed_at TIMESTAMPTZ,
+    latitude DOUBLE PRECISION,
+    longitude DOUBLE PRECISION
 );
 ALTER TABLE tasks ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Allow public access to tasks" ON tasks FOR ALL USING (true);
 
 -- 5. RPC Function: Pull Next Task (locks row to prevent worker race conditions)
 CREATE OR REPLACE FUNCTION pull_next_task(worker_name TEXT)
-RETURNS TEXT AS $$
-DECLARE
-    assigned_area TEXT;
+RETURNS TABLE (
+    id INT,
+    area TEXT,
+    status TEXT,
+    assigned_worker TEXT,
+    started_at TIMESTAMPTZ,
+    completed_at TIMESTAMPTZ,
+    latitude DOUBLE PRECISION,
+    longitude DOUBLE PRECISION
+) AS $$
 BEGIN
-    SELECT area INTO assigned_area
-    FROM tasks
-    WHERE status = 'pending'
-    ORDER BY id ASC
-    LIMIT 1
-    FOR UPDATE SKIP LOCKED;
-
-    IF assigned_area IS NOT NULL THEN
-        UPDATE tasks
-        SET status = 'in_progress',
-            assigned_worker = worker_name,
-            started_at = NOW()
-        WHERE area = assigned_area;
-    END IF;
-
-    RETURN assigned_area;
+    RETURN QUERY
+    UPDATE tasks
+    SET status = 'in_progress',
+        assigned_worker = worker_name,
+        started_at = NOW()
+    WHERE tasks.id = (
+        SELECT t.id
+        FROM tasks t
+        WHERE t.status = 'pending'
+        ORDER BY t.id ASC
+        LIMIT 1
+        FOR UPDATE SKIP LOCKED
+    )
+    RETURNING *;
 END;
 $$ LANGUAGE plpgsql;
 
