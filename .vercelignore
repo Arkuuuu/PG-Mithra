@@ -1,0 +1,12 @@
+# Exclude root python scripts from Vercel function auto-discovery
+*.py
+!api/*.py
+
+# Exclude virtual environments & temporary folders
+venv/
+__pycache__/
+output/
+scratch/
+.env
+*.bat
+*.sh
