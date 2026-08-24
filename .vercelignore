@@ -1,14 +1,3 @@
-# Ignore executable scraper scripts from Vercel function auto-discovery
-main.py
-server.py
-panning_scraper.py
-nobroker_scraper.py
-zolostays_scraper.py
-grid_generator.py
-auto_updater.py
-scraper.py
-detail_extractor.py
-
 # Exclude virtual environments & temporary folders
 venv/
 __pycache__/
