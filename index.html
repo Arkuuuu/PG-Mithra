@@ -8,8 +8,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- Leaflet.js Map CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
-    <!-- FontAwesome for Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Supabase JS SDK for Direct Edge & Realtime WebSockets -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
     <style>
         :root {
@@ -1168,6 +1168,32 @@
         }
 
         // ─────────────────────────────────────────────
+        // Direct Edge Supabase Client & Realtime WebSockets
+        // ─────────────────────────────────────────────
+        const SUPABASE_CLOUD_URL = "https://wvgdgspppuxtvzksiedf.supabase.co";
+        const SUPABASE_CLOUD_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind2Z2Rnc3BwcHV4dHZ6a3NpZWRmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM1NzM2NTcsImV4cCI6MjA5OTE0OTY1N30.i3Uil374rohmU0U-_Squ2OxDV_n5rVv5rr-IMfsEyTk";
+        const cloudSupabase = (window.supabase && window.supabase.createClient) ? window.supabase.createClient(SUPABASE_CLOUD_URL, SUPABASE_CLOUD_ANON) : null;
+
+        if (cloudSupabase) {
+            // Subscribe to real-time database pushes from worker laptops
+            cloudSupabase
+                .channel('bot-farm-realtime')
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'workers' }, () => {
+                    console.log('⚡ Realtime WebSocket: Worker Heartbeat Event');
+                    refreshAdminData();
+                })
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, () => {
+                    console.log('⚡ Realtime WebSocket: Task Queue Event');
+                    refreshAdminData();
+                })
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'listings_staging' }, () => {
+                    console.log('⚡ Realtime WebSocket: Staging Listing Event');
+                    fetchAdminListingsData();
+                })
+                .subscribe();
+        }
+
+        // ─────────────────────────────────────────────
         // Admin Console Bot Farm Logics
         // ─────────────────────────────────────────────
         let adminIntervalId = null;
@@ -1183,7 +1209,8 @@
             } else {
                 consoleEl.style.display = 'block';
                 refreshAdminData();
-                // Check updates every 5 seconds
+                fetchAdminListingsData();
+                // Backup polling fallback every 5 seconds
                 adminIntervalId = setInterval(refreshAdminData, 5000);
             }
         };
