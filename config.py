@@ -18,8 +18,8 @@ if os.path.exists(env_path):
 # ─────────────────────────────────────────────
 # Supabase Configuration (loaded safely via environment variables)
 # ─────────────────────────────────────────────
-SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
-SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "")
+SUPABASE_URL = os.environ.get("SUPABASE_URL", "https://wvgdgspppuxtvzksiedf.supabase.co")
+SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind2Z2Rnc3BwcHV4dHZ6a3NpZWRmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM1NzM2NTcsImV4cCI6MjA5OTE0OTY1N30.i3Uil374rohmU0U-_Squ2OxDV_n5rVv5rr-IMfsEyTk")
 
 # ─────────────────────────────────────────────
 # Target Areas — Hyderabad localities & micro-localities
