@@ -11,5 +11,5 @@ echo.
 echo ============================================================
 echo [START] Launching Scraper Bot Farm Worker Loop...
 echo ============================================================
-python main.py --loop --loop-interval 600
+python scraper/main.py --loop --loop-interval 600
 pause

@@ -19,8 +19,12 @@ import asyncio
 import argparse
 import logging
 import sys
+import os
 import random
 from datetime import datetime
+
+# Add root directory to sys.path to locate config.py and supabase_manager.py
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from config import (
     HYDERABAD_AREAS,

@@ -10,4 +10,4 @@ echo ""
 echo "============================================================"
 echo "[START] Launching Scraper Bot Farm Worker Loop..."
 echo "============================================================"
-python3 main.py --loop --loop-interval 600
+python3 scraper/main.py --loop --loop-interval 600

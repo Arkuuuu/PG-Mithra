@@ -72,7 +72,7 @@ After=network.target
 Type=simple
 User=${USER_NAME}
 WorkingDirectory=${APP_DIR}
-ExecStart=${APP_DIR}/venv/bin/python auto_updater.py
+ExecStart=${APP_DIR}/venv/bin/python scraper/auto_updater.py
 Restart=always
 RestartSec=5s
 Environment=PYTHONUNBUFFERED=1

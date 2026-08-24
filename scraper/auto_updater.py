@@ -48,7 +48,8 @@ def pull_latest_code() -> bool:
 def start_worker_process():
     """Launch main.py using current python executable."""
     python_bin = sys.executable
-    cmd = [python_bin, "main.py"]
+    main_script = os.path.join(os.path.dirname(os.path.abspath(__file__)), "main.py")
+    cmd = [python_bin, main_script]
     logger.info(f"🚀 Launching Worker Process: {' '.join(cmd)}")
     return subprocess.Popen(cmd)
 
