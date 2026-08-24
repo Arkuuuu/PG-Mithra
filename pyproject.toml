@@ -1,9 +1,6 @@
 [project]
 name = "pg-mithra"
 version = "0.1.0"
-dependencies = [
-    "supabase"
-]
 
 [tool.vercel]
-entrypoints = ["api/*.py"]
+entrypoint = "api/listings.py"
