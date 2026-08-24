@@ -264,6 +264,42 @@ def replicate_staging_to_production() -> bool:
         return False
 
 
+def delete_staging_listing(record_id: str) -> bool:
+    """Delete a single listing record from staging database."""
+    client = get_supabase_client()
+    if not client or not record_id:
+        return False
+    try:
+        client.table("listings_staging").delete().eq("id", record_id).execute()
+        return True
+    except Exception as e:
+        logger.warning(f"[DB] Failed to delete staging listing {record_id}: {e}")
+        return False
+
+
+def approve_single_staging_listing(record_id: str) -> bool:
+    """Approve a single staging listing: copy to production table and remove from staging."""
+    client = get_supabase_client()
+    if not client or not record_id:
+        return False
+    try:
+        # Fetch item from staging
+        res = client.table("listings_staging").select("*").eq("id", record_id).execute()
+        items = res.data if hasattr(res, "data") else []
+        if not items:
+            return False
+        
+        item = items[0]
+        # Upsert into production table 'listings'
+        client.table("listings").upsert(item).execute()
+        # Remove from staging
+        client.table("listings_staging").delete().eq("id", record_id).execute()
+        return True
+    except Exception as e:
+        logger.warning(f"[DB] Failed to approve staging listing {record_id}: {e}")
+        return False
+
+
 # ─────────────────────────────────────────────
 # SQL SCHEMA REFERENCE FOR THE USER
 # ─────────────────────────────────────────────

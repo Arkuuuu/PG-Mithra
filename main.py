@@ -251,13 +251,17 @@ async def main(args):
                             await random_page_interaction(page)
 
             except Exception as e:
-                logger.error(f"[ERR] Error in browser execution sequence: {e}")
+                logger.error(f"[ERR] Error in browser execution sequence: {e}. Auto-restarting browser in 10s...")
+                await asyncio.sleep(10)
             finally:
                 # -- Close browser to release resources and avoid detection during cooldown --
-                if pw and browser:
-                    await close_browser(pw, browser)
+                try:
+                    if pw and browser:
+                        await close_browser(pw, browser)
+                except Exception:
+                    pass
 
-            if not args.loop:
+            if not args.loop and not use_dynamic_queue:
                 break
 
             loop_count += 1

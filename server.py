@@ -97,6 +97,46 @@ class DashboardHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
 
             self.wfile.write(json.dumps({"listings": staging_listings}).encode('utf-8'))
 
+        elif self.path.startswith('/api/staging/delete'):
+            import urllib.parse
+            parsed = urllib.parse.urlparse(self.path)
+            qs = urllib.parse.parse_qs(parsed.query)
+            record_id = qs.get('id', [''])[0]
+
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.end_headers()
+
+            success = False
+            try:
+                from supabase_manager import delete_staging_listing
+                success = delete_staging_listing(record_id)
+            except Exception as e:
+                print(f"[!] Server API: Delete staging listing error: {e}")
+
+            self.wfile.write(json.dumps({"success": success, "id": record_id}).encode('utf-8'))
+
+        elif self.path.startswith('/api/staging/approve'):
+            import urllib.parse
+            parsed = urllib.parse.urlparse(self.path)
+            qs = urllib.parse.parse_qs(parsed.query)
+            record_id = qs.get('id', [''])[0]
+
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.end_headers()
+
+            success = False
+            try:
+                from supabase_manager import approve_single_staging_listing
+                success = approve_single_staging_listing(record_id)
+            except Exception as e:
+                print(f"[!] Server API: Single approve listing error: {e}")
+
+            self.wfile.write(json.dumps({"success": success, "id": record_id}).encode('utf-8'))
+
         elif self.path == '/api/replicate':
             self.send_response(200)
             self.send_header('Content-type', 'application/json')

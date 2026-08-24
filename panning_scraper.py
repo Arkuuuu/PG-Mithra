@@ -29,7 +29,7 @@ AREA_COORDINATES = {
 }
 
 async def execute_single_cell_extraction(page, area: str, all_results: list) -> int:
-    """Executes a search-this-area and listing extraction with retry loops for a single cell."""
+    """Executes search-this-area and listing extraction across multi-synonym queries for a single cell."""
     search_this_area_selectors = [
         "button:has-text('Search this area')",
         "span:has-text('Search this area')",
@@ -37,37 +37,54 @@ async def execute_single_cell_extraction(page, area: str, all_results: list) -> 
         "button.uE3aBe"
     ]
     
-    # Relentless search-this-area clicker loop
-    for attempt in range(1, 4):
-        logger.info(f"    [Cell Search] Attempting 'Search this area' (Try {attempt}/3)...")
-        btn_clicked = False
-        for selector in search_this_area_selectors:
+    queries = ["PG", "Hostel", "Gents PG", "Ladies PG"]
+    total_cell_count = 0
+
+    for query in queries:
+        logger.info(f"    [Cell Search] Sweeping query '{query}' for cell {area}...")
+        
+        search_box = await _find_search_box(page)
+        if search_box:
             try:
-                btn = page.locator(selector).first
-                if await btn.is_visible(timeout=2000):
-                    await btn.click()
-                    logger.info("    [Cell Search] Clicked 'Search this area'")
-                    btn_clicked = True
-                    break
-            except Exception:
-                continue
-        
-        await random_delay(3.0, 5.0)
-        
-        feed_selector = await _find_feed_selector(page)
-        if feed_selector:
-            # We found a results panel! Scroll and extract
-            cards = await _scroll_results_feed(page, feed_selector)
-            if cards > 0:
-                count = await _extract_all_listings(page, feed_selector, area, f"PG Coordinate Cell ({area})", all_results)
-                logger.info(f"    [Cell Search] Extracted {count} listings successfully.")
-                return count
-        else:
-            # Wait a little and loop again
-            await asyncio.sleep(2)
+                await search_box.click()
+                await page.keyboard.press("Control+A")
+                await page.keyboard.press("Backspace")
+                await random_typing(page, search_box, query)
+                await random_delay(0.5, 1.0)
+                await page.keyboard.press("Enter")
+                await random_delay(3.0, 5.0)
+            except Exception as e:
+                logger.debug(f"    [Cell Search] Search box query failed: {e}")
+
+        # Relentless search-this-area clicker loop per query
+        for attempt in range(1, 3):
+            btn_clicked = False
+            for selector in search_this_area_selectors:
+                try:
+                    btn = page.locator(selector).first
+                    if await btn.is_visible(timeout=2000):
+                        await btn.click()
+                        logger.info(f"    [Cell Search] Clicked 'Search this area' ({query})")
+                        btn_clicked = True
+                        break
+                except Exception:
+                    continue
             
-    logger.info("    [Cell Search] No listings found in this cell after 3 attempts.")
-    return 0
+            await random_delay(3.0, 4.5)
+            
+            feed_selector = await _find_feed_selector(page)
+            if feed_selector:
+                cards = await _scroll_results_feed(page, feed_selector)
+                if cards > 0:
+                    count = await _extract_all_listings(page, feed_selector, area, f"{query} Cell ({area})", all_results)
+                    total_cell_count += count
+                    logger.info(f"    [Cell Search] Extracted {count} listings for '{query}'.")
+                    break
+            else:
+                await asyncio.sleep(1.5)
+
+    logger.info(f"    [Cell Search] Total extracted in cell: {total_cell_count} listings across all queries.")
+    return total_cell_count
 
 
 async def scrape_maps_panning(page, area: str, all_results: list, cell_coords: tuple = None) -> int:
