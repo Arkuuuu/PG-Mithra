@@ -127,13 +127,16 @@ USER_AGENT_POOL = [
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
 ]
 
-# Chrome launch flags for anti-fingerprinting
+# Chrome launch flags for anti-fingerprinting & low-RAM AWS Free Tier stability
 BROWSER_ARGS = [
     "--disable-blink-features=AutomationControlled",
     "--disable-features=IsolateOrigins,site-per-process",
     "--disable-infobars",
     "--disable-background-networking",
     "--disable-dev-shm-usage",
+    "--no-sandbox",
+    "--disable-setuid-sandbox",
+    "--disable-gpu",
     "--no-first-run",
     "--no-default-browser-check",
     "--disable-popup-blocking",

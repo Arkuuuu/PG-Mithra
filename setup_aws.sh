@@ -6,9 +6,20 @@ set -e
 
 echo "🚀 Starting AWS EC2 / Linux VPS 24/7 Environment Setup..."
 
-# 1. Update system package repositories
+# 1. Update system package repositories & Configure 2GB Swap for AWS Free Tier (1GB RAM)
+echo "🧹 Optimizing System & Configuring 2GB Swap Memory..."
 sudo apt-get update -y
 sudo apt-get install -y python3 python3-pip python3-venv git curl wget build-essential
+
+if [ ! -f /swapfile ]; then
+    echo "💾 Creating 2GB Swap Space for 1GB RAM Free Tier..."
+    sudo fallocate -l 2G /swapfile || sudo dd if=/dev/zero of=/swapfile bs=1M count=2048
+    sudo chmod 600 /swapfile
+    sudo mkswap /swapfile
+    sudo swapon /swapfile
+    echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+    echo "✅ Swap Memory configured successfully."
+fi
 
 # 2. Install Playwright system dependencies (Chromium libs)
 echo "📦 Installing Playwright Linux System Dependencies..."
