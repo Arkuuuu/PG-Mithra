@@ -1,0 +1,18 @@
+name: AWS EC2 Auto-Deploy Trigger
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  notify-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Deployment Notification
+        run: |
+          echo "🚀 New commit pushed to main branch."
+          echo "The AWS EC2 24/7 supervisor daemon (auto_updater.py) will fetch and reload this code automatically within 30 seconds!"
